@@ -1,3 +1,5 @@
+import 'package:adivina_el_numero_demo/helpers/reinicio.dart';
+import 'package:adivina_el_numero_demo/providers/my_home_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
@@ -39,8 +41,7 @@ class _InputNumberState extends ConsumerState<InputNumber> {
     EdgeInsets paddingInput = EdgeInsets.symmetric(horizontal: 12, vertical: 8);
 
     OutlineInputBorder outlineInputBorderRadius = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(4),
-      borderSide: BorderSide.none,
+      borderRadius: BorderRadius.circular(8),
     );
 
     return FormBuilder(
@@ -51,20 +52,59 @@ class _InputNumberState extends ConsumerState<InputNumber> {
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        textInputAction: TextInputAction.done, 
+        textInputAction: TextInputAction.done,
         onEditingComplete: () {
           _focusNode.requestFocus();
           _formKey.currentState?.save();
-          final value = _formKey.currentState?.value['numero_ingresado']
-              ?.toString();
-          if (value != null && value.isNotEmpty) {
-            print('Número guardado: $value');
-            _formKey.currentState?.reset();
-            FocusScope.of(context).unfocus();
+
+          final numero =_formKey.currentState?.value['numero_ingresado'];
+          final numeroIngresado = int.tryParse(numero);
+          int numeroAleatorio = ref.watch(numeroAleatorioProvider);
+          int intentosRealizados = ref.watch(intentosProvider);
+
+  
+
+
+          if (numeroIngresado == numeroAleatorio) {
+           ref.read(historyProvider.notifier).update((state) => {...state, ?numeroIngresado: true});
+             ref.read(mayorQueListProvider.notifier).update((state) => []);
+      ref.read(menorQueListProvider.notifier).update((state) => []);
+        reinicioValores(ref: ref);
+
+          } else if (numeroIngresado! > numeroAleatorio) {
+            ref
+                .read(mayorQueListProvider.notifier)
+                .update((state) => [...state, numeroIngresado]);
+          } else {
+            ref
+                .read(menorQueListProvider.notifier)
+                .update((state) => [...state, numeroIngresado]);
           }
+
+
+          if (numeroIngresado != numeroAleatorio) {
+            ref.read(intentosProvider.notifier).update((state) => state - 1);
+          }
+
+
+          if (intentosRealizados <= 0 &&
+              numeroIngresado != numeroAleatorio) {
+                 ref.read(historyProvider.notifier).update((state) => {...state, ?numeroIngresado: false});
+                   ref.read(mayorQueListProvider.notifier).update((state) => []);
+      ref.read(menorQueListProvider.notifier).update((state) => []);
+
+      reinicioValores(ref: ref);
+          }
+
+          _formKey.currentState?.reset();
+          FocusScope.of(context).unfocus();
         },
         style: textStyle,
         decoration: InputDecoration(
+          labelText: 'Numbers',
+          hintText: "###",
+          hintStyle: TextStyle(color: Colors.grey[400]),
+          floatingLabelBehavior: FloatingLabelBehavior.auto,
           focusedBorder: outlineInputBorderBlue,
           enabledBorder: outlineInputBorderGris,
           contentPadding: paddingInput,
